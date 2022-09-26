@@ -1,0 +1,10 @@
+---
+- name: TAINT | GPU Node
+  command: oc adm taint nodes {{ item }} nvidia.com/gpu:NoSchedule
+  loop: "{{ new_gpu_nodes }}"
+  ignore_errors: true
+
+- name: LABEL | GPU Nodes
+  command: oc label node {{ item }} node-role.kubernetes.io/nvidia=true
+  loop: "{{ new_gpu_nodes }}"
+  ignore_errors: true

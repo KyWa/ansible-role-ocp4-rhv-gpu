@@ -1,0 +1,18 @@
+- hosts: openshift4
+  
+  pre_tasks:
+    - name: auth to ovirt/RHV
+      ovirt_auth:
+        username: user
+        password: password
+        url: "{{ ovirt_url }}"
+      run_once: true
+    - name: auth to OCP4
+      command: oc login https://api.yourocp-cluster.exmaple.com:6443 -u username -p password
+    
+  roles:
+    - name: ocp4-rhv-gpu
+
+# If using Non Red Hat Subscriber versions of ansible, uncomment the following
+#collections:
+#  - ovirt.ovirt

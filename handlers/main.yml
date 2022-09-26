@@ -1,0 +1,4 @@
+---
+- name: Uncordon Nodes
+  command: oc adm uncordon {{ item }}
+  loop: "{{ new_gpu_nodes }}"

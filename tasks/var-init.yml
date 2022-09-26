@@ -1,0 +1,86 @@
+---
+- name: RHV | Get hosts in RHV Cluster
+  uri:
+    url: "{{ ovirt_url }}/hosts/"
+    url_username: "{{ rhv_user }}"
+    url_password: "{{ rhv_password }}"
+    method: GET
+    follow_redirects: all
+    return_content: true
+    headers:
+      Accept: "application/json"
+  register: rhv_host_josn
+  no_log: true
+
+- name: SET | Just the JSON Content
+  set_fact:
+    rhvvar: "{{ rhv_host_json.content }}"
+  no_log: true
+
+- name: SET | Convert JSON
+  set_fact:
+    json_data: "{{ rhvvar.host }}"
+  no_log: true
+
+- name: SET | RHV Hosts
+  set_fact:
+    rhv_hosts: "{{ rhv_hosts | default([]) + [item.name] }}"
+  loop: "{{ json_data }}"
+  no_log: true
+
+- name: GET | Cluster Infrastructure ID
+  shell: oc get -o jsonpath='{.status.infrastructureName}{"\n"}' infrastructure cluster
+  register: kube_infra_id
+  no_log: true
+
+- name: SET | Infrastructure ID
+  set_fact:
+    infra_id: "{{ kube_infra_id.stdout }}"
+
+- name: CHECK | Existing MachineSet
+  shell: oc get machineset -n openshift-machine-api {{ infra_id }}-{{ item }}
+  register: machineset
+  failed_when: machineset.rc != 1 and machineset.rc !=0
+  loop: "{{ gpu_machinesets }}"
+
+- name: SET | MachineSet status
+  set_fact:
+    machineset_paceholder: "{{ machineset_placeholder | default({}) | combine({ item.item : item.stderr}) }}"
+  loop: "{{ machineset | json_query('results[*]') }}"
+  no_log: true
+
+- name: SET | MAchineSets to dictionary
+  set_fact:
+    machineset_status: "{{ machineset_placeholder | dict2items }}"
+  no_log: true
+
+- name: INCLUDE | Create MachineSets
+  include_tasks: machinesets.yml
+  loop: "{{ machineset_status }}"
+  loop_control:
+    loop_var: machineset_loop
+  when: '"NotFound" in machineset_loop.value and (gpu_host_machinesets | dict2items | selectattr("key", "equalto", machineset_loop.key) | list | first).key in machineset_loop.key'
+
+- name: INCLUDE | Wait for Machines to become Nodes
+  include_tasks: ocp-prep.yml
+  loop: "{{ machineset_status }}"
+  loop_control:
+    loop_var: machineset_loop
+  when: '"NotFound" in machineset_loop.value and (gpu_host_machinesets | dict2items | selectattr("key", "equalto", machineset_loop.key) | list | first).key in machineset_loop.key'
+
+- name: GET | OCP Nodes without GPUs
+  command: "oc get node -l gpu=true,nvidia.com/gpu.count!=1,feature.node.kubernetes.io/pci-10de.present!=true -o name"
+  register: no_gpu
+  no_log: true
+
+- name: GET | OCP Node Names
+  command: oc get {{ item }} -o jsonpath='{.metadata.name}'
+  loop: "{{ no_gpu.stdout_lines }}"
+  register: no_gpu_node_names
+  no_log: true
+
+- name: SET | Array for new OCP GPU Nodes
+  set_fact:
+    new_gpu_nodes: "{{ new_gpu_nodes | default([]) + [item.stdout] }}"
+  loop: "{{ no_gpu_node_names.results }}"
+  no_log: true

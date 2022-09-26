@@ -1,0 +1,10 @@
+---
+- name: GET | Initial Vars
+  include_tasks: var-init.yml
+
+- name: INCLUDE | Node Prep
+  include_tasks: node-prep.yml
+  when: no_gpu != ""
+
+- name: INCLUDE | Post Setup OCP Work
+  include_tasks: post-setup.yml

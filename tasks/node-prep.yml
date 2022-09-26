@@ -1,0 +1,19 @@
+---
+- name: CORDON | Nodes with no GPU
+  command: oc adm cordon {{ item }}
+  loop: "{{ new_gpu_nodes }}"
+
+- name: RHV | Shutdown GPU Node
+  ovirt_vm:
+    timeout: "600"
+    auth: "{{ ovirt_auth }}"
+    name: "{{ item }}"
+    state: stopped
+  loop: "{{ new_gpu_nodes }}"
+
+- name: INCLUDE | RHV Prep
+  include_tasks: rhv-prep.yml
+  when: 'gpu_host in rhv_hosts'
+  loop: "{{ gpu_rhv_hosts }}"
+  loop_control:
+    loop_var: gpu_host

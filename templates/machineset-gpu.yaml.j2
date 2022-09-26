@@ -1,0 +1,51 @@
+---
+apiVersion: machine.openshift.io/v1beta1
+kind: MachineSet
+metadata:
+  labels:
+    app.kubernetes.io/instance: node-configs
+    machine.openshift.io/cluster-api-cluster: {{ infra_id }}
+    machine.openshift.io/cluster-api-machine-role: worker
+    machine.openshift.io/cluster-api-machine-type: worker
+  name: {{ infra_id }}-{{ machineset_loop.key }}
+  namespace: openshift-machine-api
+spec:
+  replicas: {{ gpu_node_replicas }}
+  selector:
+    matchLabels:
+      machine.openshift.io/cluster-api-cluster: {{ infra_id }}
+      machine.openshift.io/cluster-api-machineset: {{ infra_id }}-{{ machineset_loop.key }}
+  template:
+    metadata:
+      labels:
+        machine.openshift.io/cluster-api-cluster: {{ infra_id }}
+        machine.openshift.io/cluster-api-machine-role: worker
+        machine.openshift.io/cluster-api-machine-type: worker
+        machine.openshift.io/cluster-api-machineset: {{ infra_id }}-{{ machineset_loop.key }}
+    spec:
+      metadata:
+        labels:
+          gpu: true
+          gpu-host: "GPU_HOST"
+      providerSpec:
+        value:
+          apiVersion: ovirtproviderconfig.machine.openshift.io/v1beta1
+          cluster_id: {{ ovirt_cluster_id }}
+          cpu:
+            cores: {{ worker_cores }}
+            sockets: {{ worker_sockets }}
+            threads: {{ worker_threads }}
+          credentialSecret:
+            name: ovirt-credentials
+          id: ""
+          kind: OvirtMachineProviderSpec
+          memory_mb: {{ worker_mem_size }}
+          name: ""
+          network_interfaces:
+          - vnic_profile_id: {{ vnic_profile_id }}
+          os_disk:
+            size_gb: {{ worker_disk }}
+          template_name; {{ infra_id }}-rhcos
+          type: server
+          userDataSecret:
+            name: worker-user-data

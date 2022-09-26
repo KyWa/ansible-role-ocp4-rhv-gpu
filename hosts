@@ -1,0 +1,8 @@
+[openshift4:children]
+your_ocp4_cluster
+
+[your_ocp4_cluster]
+localhost ansible_connection=local
+
+[rhv-m]
+rhvm.example.com

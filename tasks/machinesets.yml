@@ -1,0 +1,14 @@
+---
+- name: GENERATE | MachineSet Template
+  template:
+    src: machineset-gpu.yaml.j2
+    dest: /tmp/machineset-gpu-{{ machineset_loop.key }}.yaml
+
+- name: SET | GPU Hostname in MachineSet template
+  replace:
+    path: /tmp/machineset-gpu-{{ machineset_loop.key }}.yaml
+    regexp: "GPU_HOST"
+    replace: "{{ (gpu_host_machinesets | dict2items | selectattr('key', 'equalto', machineset_loop.key) | list | first).value }}"
+
+- name: CREATE | New MachineSet
+  command: oc create -f /tmp/machineset-gpu-{{ machineset_loop.key }}.yaml

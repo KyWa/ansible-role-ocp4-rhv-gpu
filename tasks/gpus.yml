@@ -1,0 +1,30 @@
+---
+- name: GET | GPU VM Nodes per host
+  command: "oc get node -l gpu-host={{ gpu_host }} -o name"
+  register: gpu_vm
+  no_log: true
+
+- name: GET | Node Names
+  command: oc get {{ item }} -o jsonpath='{.metadata.name}'
+  loop: "{{ gpu_vm.stdout_lines }}"
+  register: vm_names
+  no_log: true
+
+- name: SET | GPU VM Name array
+  set_fact:
+    gpu_vm_names: "{{ gpu_vm_names | default([]) + [item.stdout] }}"
+  loop: "{{ vm_names.results }}"
+  no_log: true
+
+- name: RHV | Migrate VMs and attach Host Device
+  ovirt_vm:
+    name: "{{ item.0 }}"
+    host: "{{ gpu_host }}"
+    auth: "{{ ovirt_auth }}"
+    placement_policy: "pinned"
+    host_devices:
+      - name: "{{ item.1 }}"
+        state: present
+    state: running
+  loop: "{{ gpu_vm_names | zip(rhv_gpu_device_names) | list }}"
+  notify: Uncordon Nodes

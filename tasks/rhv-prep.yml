@@ -1,0 +1,28 @@
+---
+- name: SET | Getting PCI Devices
+  uri:
+    url: "{{ ovirt_url }}/hosts/{{ rhv_host_id }}/devices"
+    url_username: "{{ rhv_user }}"
+    url_password: "{{ rhv_password }}"
+    method: GET
+    follow_redirects: all
+    return_content: true
+    headers:
+      Accept: "application/json"
+  register: rhv_host_devices
+  failed_when: rhv_host_devices.status == 500
+  no_log: true
+
+- name: SET | Format JSON output
+  set_fact:
+    json_data_devices: "{{ rhv_host_devices.content }}"
+
+- name: SET | Get GPU Device IDs
+  set_fact:
+    rhv_gpu_device_names: "{{ json_data_devices | json_query(jmesquery) }}"
+  vars:
+    jmesquery: "host_device[?capability=='pci' && driver=='vfio-pci' && vm==null].name"
+
+- name: INCLUDE | RHV GPU
+  include_tasks: gpus.yml
+  when: rhv_gpu_device_names != ""

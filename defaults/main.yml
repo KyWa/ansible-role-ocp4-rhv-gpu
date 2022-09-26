@@ -1,0 +1,5 @@
+---
+gpu_node_replicas: 2
+max_vm_per_host: 2
+gpu_machinesets:
+- worker-gpu-01

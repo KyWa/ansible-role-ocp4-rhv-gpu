@@ -1,0 +1,15 @@
+gpu_rhv_hosts:
+  - rhvhost.example.com
+gpu_host_machinesets:
+  worker-gpu-01: rhvhost.example.com
+
+ovirt_engine: "{{ groups['hosted_engine'][0] }}"
+ovirt_url: "https://{{ ovirt_engine }}/ovirt-engine/api"
+ovirt_cluster_id: ""
+vnic_profile_id: ""
+
+worker_disk: 120
+worker_cpu: 2
+worker_sockets: 4
+worker_thread: 1
+worker_mem: 32768

@@ -1,0 +1,30 @@
+---
+- name: GET | Waiting for GPU VMs is now MachineSet
+  command: oc get machine -n openshift-machine-api -l machine.openshift.io/cluster-api-machineset={{ infra_id }}-{{ machineset_loop.key }} -o name
+  register: new_machineset_machines
+
+- name: GET | New VM Names
+  command: oc get -n openshift-machine-api {{ item }} -o jsonpath='{.metadata.name}'
+  register: new_machines
+  no_log: true
+
+- name: SET | Array for new machines
+  set_fact:
+    new_gpu_machines: "{{ new_gpu_machines | default([]) + [item.stdout] }}"
+
+- name: WAIT | For new Machines to become Nodes
+  block:
+    - name: GET | New Machine status
+      command: oc get -n openshift-machine-api machine {{ item }} -o jsonpath='{.status.phase}'
+      loop: "{{ new_gpu_machines }}"
+      register: machinestat
+      until: machinestat is not failed and machinestat.stdout == "Running"
+      retries: 10
+      delay: 300
+
+  rescue:
+    - name: FAILED | Machines never became nodes
+      fail:
+        msg:
+          - "The new Machines never became Nodes"
+          - "Run 'oc get machine -n openshift-machine-api' to determine which machine is having issues"
