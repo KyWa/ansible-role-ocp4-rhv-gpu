@@ -2,7 +2,7 @@
 dependencies: []
 
 galaxy_info:
-  role_name: ocp4-rhv-gpu
+  role_name: ocp4_rhv_gpu
   author: kywa
   description: Adding GPUs to OCP worker nodes
   license: MIT
